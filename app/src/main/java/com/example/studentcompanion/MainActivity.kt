@@ -12,31 +12,28 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Find root layout and apply window insets
         val mainLayout = findViewById<LinearLayout>(R.id.mainLayout)
         mainLayout.setOnApplyWindowInsetsListener { view, insets ->
             view.setPadding(
                 view.paddingLeft,
-                insets.systemWindowInsetTop,    // Status bar
+                insets.systemWindowInsetTop,
                 view.paddingRight,
-                insets.systemWindowInsetBottom  // Navigation bar
+                insets.systemWindowInsetBottom
             )
             insets.consumeSystemWindowInsets()
         }
 
-        // Initialize card views
         val cardCourses = findViewById<CardView>(R.id.cardCourses)
         val cardAssignments = findViewById<CardView>(R.id.cardAssignments)
         val cardTasks = findViewById<CardView>(R.id.cardTasks)
         val cardSchedule = findViewById<CardView>(R.id.cardSchedule)
 
-        // Set click listeners
         cardCourses.setOnClickListener {
             startActivity(Intent(this, CoursesActivity::class.java))
         }
 
         cardAssignments.setOnClickListener {
-            // startActivity(Intent(this, AssignmentsActivity::class.java))
+            startActivity(Intent(this, AssignmentsActivity::class.java))
         }
 
         cardTasks.setOnClickListener {

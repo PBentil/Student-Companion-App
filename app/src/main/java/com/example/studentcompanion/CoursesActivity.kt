@@ -1,5 +1,6 @@
 package com.example.studentcompanion
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -22,6 +23,7 @@ class CoursesActivity : AppCompatActivity() {
     private lateinit var emptyState: LinearLayout
     private lateinit var fabAddCourse: FloatingActionButton
 
+    // Temporary in-memory storage (will be replaced with database later)
     private val coursesList = mutableListOf<Course>()
     private var selectedColor = "#6366F1" // Default color
 
@@ -29,39 +31,29 @@ class CoursesActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_courses)
 
-        // Find root layout and apply window insets
-        val mainLayout = findViewById<LinearLayout>(R.id.mainLayout)
-        mainLayout.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(
-                view.paddingLeft,
-                insets.systemWindowInsetTop,    // Status bar height
-                view.paddingRight,
-                insets.systemWindowInsetBottom  // Navigation bar height
-            )
-            insets.consumeSystemWindowInsets()
-        }
-
         // Initialize views
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         recyclerView = findViewById(R.id.coursesRecyclerView)
         emptyState = findViewById(R.id.emptyState)
         fabAddCourse = findViewById(R.id.fabAddCourse)
 
-        // Toolbar back button
-        toolbar.setNavigationOnClickListener { finish() }
+        // Setup toolbar
+        toolbar.setNavigationOnClickListener {
+            finish()
+        }
 
         // Setup RecyclerView
         adapter = CoursesAdapter(coursesList) { course ->
+            // Handle course click - could open details or edit dialog
             showCourseDialog(course)
         }
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // FAB to add course
-        fabAddCourse.setOnClickListener { showCourseDialog(null) }
-
-        // Add sample courses
-        addSampleCourses()
+        // Setup FAB
+        fabAddCourse.setOnClickListener {
+            showCourseDialog(null)
+        }
 
         // Update UI
         updateUI()
@@ -75,7 +67,7 @@ class CoursesActivity : AppCompatActivity() {
             .setView(dialogView)
             .create()
 
-        // Dialog views
+        // Get views from dialog
         val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
         val etCourseCode = dialogView.findViewById<TextInputEditText>(R.id.etCourseCode)
         val etCourseName = dialogView.findViewById<TextInputEditText>(R.id.etCourseName)
@@ -93,12 +85,21 @@ class CoursesActivity : AppCompatActivity() {
         val colorRed = dialogView.findViewById<View>(R.id.colorRed)
         val colorPurple = dialogView.findViewById<View>(R.id.colorPurple)
 
+        // Setup color selection
         fun selectColor(color: String, view: View) {
             selectedColor = color
-            listOf(colorBlue, colorGreen, colorYellow, colorRed, colorPurple).forEach {
-                it.scaleX = 1f
-                it.scaleY = 1f
-            }
+            // Reset all colors to normal size
+            colorBlue.scaleX = 1f
+            colorBlue.scaleY = 1f
+            colorGreen.scaleX = 1f
+            colorGreen.scaleY = 1f
+            colorYellow.scaleX = 1f
+            colorYellow.scaleY = 1f
+            colorRed.scaleX = 1f
+            colorRed.scaleY = 1f
+            colorPurple.scaleX = 1f
+            colorPurple.scaleY = 1f
+            // Scale up selected color
             view.scaleX = 1.2f
             view.scaleY = 1.2f
         }
@@ -109,6 +110,7 @@ class CoursesActivity : AppCompatActivity() {
         colorRed.setOnClickListener { selectColor("#EF4444", it) }
         colorPurple.setOnClickListener { selectColor("#A855F7", it) }
 
+        // If editing, populate fields
         if (course != null) {
             dialogTitle.text = "Edit Course"
             etCourseCode.setText(course.courseCode)
@@ -120,7 +122,9 @@ class CoursesActivity : AppCompatActivity() {
             btnSave.text = "Update Course"
         }
 
-        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
 
         btnSave.setOnClickListener {
             val courseCode = etCourseCode.text.toString().trim()
@@ -130,24 +134,29 @@ class CoursesActivity : AppCompatActivity() {
             val schedule = etSchedule.text.toString().trim()
             val creditsStr = etCredits.text.toString().trim()
 
-            if (courseCode.isEmpty() || courseName.isEmpty()) return@setOnClickListener
+            // Validate inputs
+            if (courseCode.isEmpty() || courseName.isEmpty()) {
+                // Show error
+                return@setOnClickListener
+            }
 
             val credits = creditsStr.toIntOrNull() ?: 0
 
             if (course == null) {
-                coursesList.add(
-                    Course(
-                        id = System.currentTimeMillis(),
-                        courseCode = courseCode,
-                        courseName = courseName,
-                        instructor = instructor,
-                        room = room,
-                        schedule = schedule,
-                        credits = credits,
-                        color = selectedColor
-                    )
+                // Add new course
+                val newCourse = Course(
+                    id = System.currentTimeMillis(),
+                    courseCode = courseCode,
+                    courseName = courseName,
+                    instructor = instructor,
+                    room = room,
+                    schedule = schedule,
+                    credits = credits,
+                    color = selectedColor
                 )
+                coursesList.add(newCourse)
             } else {
+                // Update existing course
                 val index = coursesList.indexOfFirst { it.id == course.id }
                 if (index != -1) {
                     coursesList[index] = course.copy(
@@ -178,44 +187,5 @@ class CoursesActivity : AppCompatActivity() {
             emptyState.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
         }
-    }
-
-    private fun addSampleCourses() {
-        coursesList.add(
-            Course(
-                id = 1,
-                courseCode = "CS 101",
-                courseName = "Introduction to Computer Science",
-                instructor = "Dr. Sarah Johnson",
-                room = "Room 204, Science Building",
-                schedule = "Mon, Wed, Fri • 10:00 AM - 11:30 AM",
-                credits = 3,
-                color = "#6366F1"
-            )
-        )
-        coursesList.add(
-            Course(
-                id = 2,
-                courseCode = "MATH 201",
-                courseName = "Calculus II",
-                instructor = "Prof. Michael Chen",
-                room = "Room 301, Math Building",
-                schedule = "Tue, Thu • 2:00 PM - 3:30 PM",
-                credits = 4,
-                color = "#10B981"
-            )
-        )
-        coursesList.add(
-            Course(
-                id = 3,
-                courseCode = "ENG 105",
-                courseName = "English Composition",
-                instructor = "Dr. Emily Davis",
-                room = "Room 102, Liberal Arts",
-                schedule = "Mon, Wed • 1:00 PM - 2:30 PM",
-                credits = 3,
-                color = "#F59E0B"
-            )
-        )
     }
 }
