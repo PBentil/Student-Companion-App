@@ -11,16 +11,22 @@ import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.studentcompanion.adapter.AssignmentsAdapter
+import com.example.studentcompanion.database.StudentDatabase
 import com.example.studentcompanion.model.Assignment
 import com.example.studentcompanion.model.Priority
 import com.example.studentcompanion.model.Status
+import com.example.studentcompanion.model.toAssignment
+import com.example.studentcompanion.model.toCourse
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.chip.Chip
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -31,22 +37,21 @@ class AssignmentsActivity : AppCompatActivity() {
     private lateinit var emptyState: LinearLayout
     private lateinit var fabAddAssignment: FloatingActionButton
 
-    // Filter chips
     private lateinit var chipAll: Chip
     private lateinit var chipPending: Chip
     private lateinit var chipCompleted: Chip
     private lateinit var chipOverdue: Chip
 
-    // Temporary in-memory storage
+    private lateinit var database: StudentDatabase
     private val assignmentsList = mutableListOf<Assignment>()
     private var currentFilter = "All"
     private var selectedDate: Calendar = Calendar.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_assignments)
 
-        // Initialize views
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         recyclerView = findViewById(R.id.assignmentsRecyclerView)
         emptyState = findViewById(R.id.emptyState)
@@ -57,12 +62,12 @@ class AssignmentsActivity : AppCompatActivity() {
         chipCompleted = findViewById(R.id.chipCompleted)
         chipOverdue = findViewById(R.id.chipOverdue)
 
-        // Setup toolbar
+        database = StudentDatabase.getDatabase(this)
+
         toolbar.setNavigationOnClickListener {
             finish()
         }
 
-        // Setup RecyclerView
         adapter = AssignmentsAdapter(
             getFilteredAssignments(),
             onAssignmentClick = { assignment ->
@@ -75,12 +80,10 @@ class AssignmentsActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // Setup FAB
         fabAddAssignment.setOnClickListener {
             showAssignmentDialog(null)
         }
 
-        // Setup filter chips
         chipAll.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 currentFilter = "All"
@@ -109,8 +112,17 @@ class AssignmentsActivity : AppCompatActivity() {
             }
         }
 
-        // Update UI
-        updateUI()
+        loadAssignments()
+    }
+
+    private fun loadAssignments() {
+        lifecycleScope.launch {
+            val entities = database.assignmentDao().getAllAssignmentsSync()
+            assignmentsList.clear()
+            assignmentsList.addAll(entities.map { it.toAssignment() })
+            updateAssignmentsList()
+            updateUI()
+        }
     }
 
     private fun showAssignmentDialog(assignment: Assignment?) {
@@ -120,7 +132,6 @@ class AssignmentsActivity : AppCompatActivity() {
             .setView(dialogView)
             .create()
 
-        // Get views from dialog
         val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
         val etTitle = dialogView.findViewById<TextInputEditText>(R.id.etAssignmentTitle)
         val etCourse = dialogView.findViewById<AutoCompleteTextView>(R.id.etCourse)
@@ -130,19 +141,20 @@ class AssignmentsActivity : AppCompatActivity() {
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
         val btnSave = dialogView.findViewById<Button>(R.id.btnSave)
 
-        // Setup course dropdown with sample courses
-        val courses = arrayOf("CS 101", "MATH 201", "ENG 105", "PHYS 201", "HIST 101")
-        val courseAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, courses)
-        etCourse.setAdapter(courseAdapter)
+        // Load real courses from database for the dropdown
+        lifecycleScope.launch {
+            val courseEntities = database.courseDao().getAllCoursesSync()
+            val courseCodes = courseEntities.map { it.courseCode }
+            val courseAdapter = ArrayAdapter(this@AssignmentsActivity, android.R.layout.simple_dropdown_item_1line, courseCodes)
+            etCourse.setAdapter(courseAdapter)
+        }
 
-        // Setup date picker
         etDueDate.setOnClickListener {
             showDatePicker { date ->
                 etDueDate.setText(date)
             }
         }
 
-        // If editing, populate fields
         if (assignment != null) {
             dialogTitle.text = "Edit Assignment"
             etTitle.setText(assignment.title)
@@ -158,7 +170,6 @@ class AssignmentsActivity : AppCompatActivity() {
 
             btnSave.text = "Update Assignment"
         } else {
-            // Set default due date to today
             val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             etDueDate.setText(dateFormat.format(selectedDate.time))
         }
@@ -173,9 +184,7 @@ class AssignmentsActivity : AppCompatActivity() {
             val description = etDescription.text.toString().trim()
             val dueDate = etDueDate.text.toString().trim()
 
-            // Validate inputs
             if (title.isEmpty() || courseCode.isEmpty() || dueDate.isEmpty()) {
-                // Show error
                 return@setOnClickListener
             }
 
@@ -186,9 +195,8 @@ class AssignmentsActivity : AppCompatActivity() {
             }
 
             if (assignment == null) {
-                // Add new assignment
                 val newAssignment = Assignment(
-                    id = System.currentTimeMillis(),
+                    id = 0,
                     title = title,
                     courseCode = courseCode,
                     description = description,
@@ -197,23 +205,26 @@ class AssignmentsActivity : AppCompatActivity() {
                     status = Status.PENDING,
                     isCompleted = false
                 )
-                assignmentsList.add(newAssignment)
+
+                lifecycleScope.launch {
+                    database.assignmentDao().insert(newAssignment.toEntity())
+                    loadAssignments()
+                }
             } else {
-                // Update existing assignment
-                val index = assignmentsList.indexOfFirst { it.id == assignment.id }
-                if (index != -1) {
-                    assignmentsList[index] = assignment.copy(
-                        title = title,
-                        courseCode = courseCode,
-                        description = description,
-                        dueDate = dueDate,
-                        priority = priority
-                    )
+                val updatedAssignment = assignment.copy(
+                    title = title,
+                    courseCode = courseCode,
+                    description = description,
+                    dueDate = dueDate,
+                    priority = priority
+                )
+
+                lifecycleScope.launch {
+                    database.assignmentDao().update(updatedAssignment.toEntity())
+                    loadAssignments()
                 }
             }
 
-            updateAssignmentsList()
-            updateUI()
             dialog.dismiss()
         }
 
@@ -222,7 +233,6 @@ class AssignmentsActivity : AppCompatActivity() {
 
     private fun showDatePicker(onDateSelected: (String) -> Unit) {
         val calendar = Calendar.getInstance()
-
         val datePickerDialog = DatePickerDialog(
             this,
             { _, year, month, dayOfMonth ->
@@ -234,18 +244,18 @@ class AssignmentsActivity : AppCompatActivity() {
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
         )
-
         datePickerDialog.show()
     }
 
     private fun handleCheckboxChange(assignment: Assignment, isChecked: Boolean) {
-        val index = assignmentsList.indexOfFirst { it.id == assignment.id }
-        if (index != -1) {
-            assignmentsList[index] = assignment.copy(
-                isCompleted = isChecked,
-                status = if (isChecked) Status.COMPLETED else Status.PENDING
-            )
-            updateAssignmentsList()
+        val updatedAssignment = assignment.copy(
+            isCompleted = isChecked,
+            status = if (isChecked) Status.COMPLETED else Status.PENDING
+        )
+
+        lifecycleScope.launch {
+            database.assignmentDao().update(updatedAssignment.toEntity())
+            loadAssignments()
         }
     }
 
