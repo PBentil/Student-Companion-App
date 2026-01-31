@@ -40,13 +40,11 @@ class AssignmentsAdapter(
     override fun onBindViewHolder(holder: AssignmentViewHolder, position: Int) {
         val assignment = assignments[position]
 
-        // Set text fields
         holder.courseCode.text = assignment.courseCode
         holder.title.text = assignment.title
         holder.description.text = assignment.description
         holder.dueDate.text = "Due: ${assignment.dueDate}"
 
-        // Set priority
         when (assignment.priority) {
             Priority.LOW -> {
                 holder.priority.text = "Low"
@@ -68,7 +66,6 @@ class AssignmentsAdapter(
             }
         }
 
-        // Set status indicator color
         when (assignment.status) {
             Status.PENDING -> {
                 holder.statusIndicator.backgroundTintList =
@@ -84,10 +81,8 @@ class AssignmentsAdapter(
             }
         }
 
-        // Set checkbox state
         holder.checkbox.isChecked = assignment.isCompleted
 
-        // Apply strikethrough if completed
         if (assignment.isCompleted) {
             holder.title.paintFlags = holder.title.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             holder.title.alpha = 0.6f
@@ -98,12 +93,10 @@ class AssignmentsAdapter(
             holder.description.alpha = 1f
         }
 
-        // Set checkbox listener
         holder.checkbox.setOnCheckedChangeListener { _, isChecked ->
             onCheckboxChange(assignment, isChecked)
         }
 
-        // Set click listener
         holder.itemView.setOnClickListener {
             onAssignmentClick(assignment)
         }
