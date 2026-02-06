@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         cardTasks.setOnClickListener {
-            // startActivity(Intent(this, TasksActivity::class.java))
+             startActivity(Intent(this, TasksActivity::class.java))
         }
 
         cardSchedule.setOnClickListener {
