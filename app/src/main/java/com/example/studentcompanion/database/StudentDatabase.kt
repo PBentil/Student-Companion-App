@@ -6,14 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [CourseEntity::class, AssignmentEntity::class],
-    version = 1,
+    entities = [CourseEntity::class, AssignmentEntity::class, TaskEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class StudentDatabase : RoomDatabase() {
 
     abstract fun courseDao(): CourseDao
     abstract fun assignmentDao(): AssignmentDao
+    abstract fun taskDao(): TaskDao
 
     companion object {
         @Volatile
