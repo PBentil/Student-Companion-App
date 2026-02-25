@@ -30,8 +30,13 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * AssignmentsActivity handles the tracking of academic assignments.
+ * Features filtering by status and priority management.
+ */
 class AssignmentsActivity : AppCompatActivity() {
 
+    // UI Components
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: AssignmentsAdapter
     private lateinit var emptyState: LinearLayout
@@ -68,6 +73,7 @@ class AssignmentsActivity : AppCompatActivity() {
             finish()
         }
 
+        // FUNCTION: Initialize adapter with callback functions
         adapter = AssignmentsAdapter(
             getFilteredAssignments(),
             onAssignmentClick = { assignment ->
@@ -84,6 +90,7 @@ class AssignmentsActivity : AppCompatActivity() {
             showAssignmentDialog(null)
         }
 
+        // CONDITIONAL LOGIC: Filter chip selection handlers
         chipAll.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 currentFilter = "All"
@@ -115,6 +122,10 @@ class AssignmentsActivity : AppCompatActivity() {
         loadAssignments()
     }
 
+    /**
+     * FUNCTION: Asynchronously loads assignments from database.
+     * TRANSFORM: Uses '.map' to convert entities.
+     */
     private fun loadAssignments() {
         lifecycleScope.launch {
             val entities = database.assignmentDao().getAllAssignmentsSync()
@@ -125,6 +136,10 @@ class AssignmentsActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTION: Shows a dialog to create or update an assignment.
+     * NULLABILITY: 'assignment' is nullable; null indicates a new entry.
+     */
     private fun showAssignmentDialog(assignment: Assignment?) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_assignment, null)
 
@@ -141,7 +156,7 @@ class AssignmentsActivity : AppCompatActivity() {
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
         val btnSave = dialogView.findViewById<Button>(R.id.btnSave)
 
-        // Load real courses from database for the dropdown
+        // FUNCTION: Fetch courses to populate dropdown
         lifecycleScope.launch {
             val courseEntities = database.courseDao().getAllCoursesSync()
             val courseCodes = courseEntities.map { it.courseCode }
@@ -155,6 +170,7 @@ class AssignmentsActivity : AppCompatActivity() {
             }
         }
 
+        // CONDITIONAL LOGIC: Pre-fill fields if editing an existing assignment
         if (assignment != null) {
             dialogTitle.text = "Edit Assignment"
             etTitle.setText(assignment.title)
@@ -162,6 +178,7 @@ class AssignmentsActivity : AppCompatActivity() {
             etDescription.setText(assignment.description)
             etDueDate.setText(assignment.dueDate)
 
+            // CONDITIONAL LOGIC: Map priority enum to radio buttons
             when (assignment.priority) {
                 Priority.LOW -> priorityGroup.check(R.id.radioLow)
                 Priority.MEDIUM -> priorityGroup.check(R.id.radioMedium)
@@ -170,6 +187,7 @@ class AssignmentsActivity : AppCompatActivity() {
 
             btnSave.text = "Update Assignment"
         } else {
+            // Default date for new assignments
             val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             etDueDate.setText(dateFormat.format(selectedDate.time))
         }
@@ -184,16 +202,19 @@ class AssignmentsActivity : AppCompatActivity() {
             val description = etDescription.text.toString().trim()
             val dueDate = etDueDate.text.toString().trim()
 
+            // CONDITIONAL LOGIC: Required field validation
             if (title.isEmpty() || courseCode.isEmpty() || dueDate.isEmpty()) {
                 return@setOnClickListener
             }
 
+            // CONDITIONAL LOGIC: Determine priority from radio selection
             val priority = when (priorityGroup.checkedRadioButtonId) {
                 R.id.radioLow -> Priority.LOW
                 R.id.radioHigh -> Priority.HIGH
                 else -> Priority.MEDIUM
             }
 
+            // CONDITIONAL LOGIC: Branch for Insert or Update
             if (assignment == null) {
                 val newAssignment = Assignment(
                     id = 0,
@@ -231,6 +252,9 @@ class AssignmentsActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    /**
+     * FUNCTION: Wraps DatePickerDialog into a clean callback interface.
+     */
     private fun showDatePicker(onDateSelected: (String) -> Unit) {
         val calendar = Calendar.getInstance()
         val datePickerDialog = DatePickerDialog(
@@ -247,6 +271,9 @@ class AssignmentsActivity : AppCompatActivity() {
         datePickerDialog.show()
     }
 
+    /**
+     * FUNCTION: Updates completion status and status enum based on checkbox state.
+     */
     private fun handleCheckboxChange(assignment: Assignment, isChecked: Boolean) {
         val updatedAssignment = assignment.copy(
             isCompleted = isChecked,
@@ -259,6 +286,10 @@ class AssignmentsActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTION: Applies filter logic to the assignments list.
+     * CONDITIONAL LOGIC: Filtering based on enum values and status strings.
+     */
     private fun getFilteredAssignments(): List<Assignment> {
         return when (currentFilter) {
             "Pending" -> assignmentsList.filter { it.status == Status.PENDING && !it.isCompleted }
@@ -272,6 +303,9 @@ class AssignmentsActivity : AppCompatActivity() {
         adapter.updateAssignments(getFilteredAssignments())
     }
 
+    /**
+     * FUNCTION: Updates visibility of UI elements based on list state.
+     */
     private fun updateUI() {
         val filteredList = getFilteredAssignments()
         if (filteredList.isEmpty()) {
