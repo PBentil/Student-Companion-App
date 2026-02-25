@@ -23,8 +23,13 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 
+/**
+ * TasksActivity manages the To-Do list functionality.
+ * Allows users to create, filter, complete, and delete tasks.
+ */
 class TasksActivity : AppCompatActivity() {
 
+    // UI and Database references
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: TasksAdapter
     private lateinit var emptyState: LinearLayout
@@ -33,22 +38,18 @@ class TasksActivity : AppCompatActivity() {
     private lateinit var tvTotalCount: TextView
     private lateinit var progressBar: ProgressBar
 
-    // Filter chips
+    // NULLABILITY: Filter chips are initialized as lateinit, ensured non-null before use in onCreate
     private lateinit var chipAll: Chip
     private lateinit var chipActive: Chip
     private lateinit var chipCompleted: Chip
 
-    // Database
     private lateinit var database: StudentDatabase
     private val tasksList = mutableListOf<Task>()
     private var currentFilter = "All"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Handle notch and status bar
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
         setContentView(R.layout.activity_tasks)
 
         // Initialize views
@@ -64,15 +65,13 @@ class TasksActivity : AppCompatActivity() {
         chipActive = findViewById(R.id.chipActive)
         chipCompleted = findViewById(R.id.chipCompleted)
 
-        // Initialize database
         database = StudentDatabase.getDatabase(this)
 
-        // Setup toolbar
         toolbar.setNavigationOnClickListener {
             finish()
         }
 
-        // Setup RecyclerView
+        // FUNCTION/LAMBDA: Setup adapter with callback functions for clicks and actions
         adapter = TasksAdapter(
             getFilteredTasks(),
             onTaskClick = { task ->
@@ -88,12 +87,11 @@ class TasksActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // Setup FAB
         fabAddTask.setOnClickListener {
             showTaskDialog(null)
         }
 
-        // Setup filter chips
+        // CONDITIONAL LOGIC: Handle filtering based on chip selection
         chipAll.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 currentFilter = "All"
@@ -115,14 +113,17 @@ class TasksActivity : AppCompatActivity() {
             }
         }
 
-        // Load tasks from database
         loadTasks()
     }
 
+    /**
+     * FUNCTION: Loads tasks from Room database asynchronously.
+     */
     private fun loadTasks() {
         lifecycleScope.launch {
             val entities = database.taskDao().getAllTasksSync()
             tasksList.clear()
+            // LOOP: Transform entities to domain models using .map
             tasksList.addAll(entities.map { it.toTask() })
             updateTasksList()
             updateProgress()
@@ -130,6 +131,10 @@ class TasksActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTION: Displays a dialog to either Add or Edit a task.
+     * NULLABILITY: 'task' parameter is nullable. If null, we're adding; if not, we're editing.
+     */
     private fun showTaskDialog(task: Task?) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_task, null)
 
@@ -137,7 +142,6 @@ class TasksActivity : AppCompatActivity() {
             .setView(dialogView)
             .create()
 
-        // Get views from dialog
         val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
         val etTitle = dialogView.findViewById<TextInputEditText>(R.id.etTaskTitle)
         val etDescription = dialogView.findViewById<TextInputEditText>(R.id.etTaskDescription)
@@ -145,13 +149,13 @@ class TasksActivity : AppCompatActivity() {
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
         val btnSave = dialogView.findViewById<Button>(R.id.btnSave)
 
-        // If editing, populate fields
+        // CONDITIONAL LOGIC: Populate fields if editing an existing task
         if (task != null) {
             dialogTitle.text = "Edit Task"
             etTitle.setText(task.title)
             etDescription.setText(task.description)
 
-            // Select category chip
+            // CONDITIONAL LOGIC: Check appropriate category chip
             when (task.category) {
                 "Study" -> categoryGroup.check(R.id.chipStudy)
                 "Personal" -> categoryGroup.check(R.id.chipPersonal)
@@ -170,13 +174,13 @@ class TasksActivity : AppCompatActivity() {
             val title = etTitle.text.toString().trim()
             val description = etDescription.text.toString().trim()
 
-            // Validate
+            // CONDITIONAL LOGIC: Basic validation for required fields
             if (title.isEmpty()) {
                 etTitle.error = "Title is required"
                 return@setOnClickListener
             }
 
-            // Get selected category
+            // CONDITIONAL LOGIC: Resolve category from selected chip
             val category = when (categoryGroup.checkedChipId) {
                 R.id.chipStudy -> "Study"
                 R.id.chipPersonal -> "Personal"
@@ -185,8 +189,8 @@ class TasksActivity : AppCompatActivity() {
                 else -> ""
             }
 
+            // CONDITIONAL LOGIC: Create new or update existing based on nullability of 'task'
             if (task == null) {
-                // Add new task
                 val newTask = Task(
                     id = 0,
                     title = title,
@@ -201,7 +205,6 @@ class TasksActivity : AppCompatActivity() {
                     loadTasks()
                 }
             } else {
-                // Update existing task
                 val updatedTask = task.copy(
                     title = title,
                     description = description,
@@ -220,6 +223,9 @@ class TasksActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    /**
+     * FUNCTION: Updates task completion status in database.
+     */
     private fun handleCheckboxChange(task: Task, isChecked: Boolean) {
         val updatedTask = task.copy(isCompleted = isChecked)
 
@@ -229,6 +235,9 @@ class TasksActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTION: Shows confirmation dialog before deletion.
+     */
     private fun showDeleteConfirmation(task: Task) {
         AlertDialog.Builder(this)
             .setTitle("Delete Task")
@@ -243,6 +252,10 @@ class TasksActivity : AppCompatActivity() {
             .show()
     }
 
+    /**
+     * FUNCTION: Filters the list of tasks based on the current filter selection.
+     * CONDITIONAL LOGIC: Uses 'when' and 'filter' (loop-based filtering).
+     */
     private fun getFilteredTasks(): List<Task> {
         return when (currentFilter) {
             "Active" -> tasksList.filter { !it.isCompleted }
@@ -255,6 +268,10 @@ class TasksActivity : AppCompatActivity() {
         adapter.updateTasks(getFilteredTasks())
     }
 
+    /**
+     * FUNCTION: Calculates and updates the overall progress bar.
+     * LOOP/LOGIC: Uses 'count' to iterate through list and logic to prevent division by zero.
+     */
     private fun updateProgress() {
         val completed = tasksList.count { it.isCompleted }
         val total = tasksList.size
@@ -262,10 +279,15 @@ class TasksActivity : AppCompatActivity() {
         tvCompletedCount.text = completed.toString()
         tvTotalCount.text = "of $total"
 
+        // CONDITIONAL LOGIC: Avoid division by zero
         val progress = if (total > 0) (completed * 100) / total else 0
         progressBar.progress = progress
     }
 
+    /**
+     * FUNCTION: Controls visibility of empty state vs. recycler view.
+     * CONDITIONAL LOGIC: Checks if the filtered list is empty.
+     */
     private fun updateUI() {
         val filteredList = getFilteredTasks()
         if (filteredList.isEmpty()) {

@@ -1,0 +1,361 @@
+package com.example.studentcompanion
+
+import android.app.TimePickerDialog
+import android.os.Bundle
+import android.view.View
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.studentcompanion.adapter.ScheduleAdapter
+import com.example.studentcompanion.database.StudentDatabase
+import com.example.studentcompanion.model.Course
+import com.example.studentcompanion.model.Schedule
+import com.example.studentcompanion.model.toCourse
+import com.example.studentcompanion.model.toSchedule
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
+
+/**
+ * ScheduleActivity manages the weekly class schedule.
+ * Features day-based filtering and automated date detection.
+ */
+class ScheduleActivity : AppCompatActivity() {
+
+    // UI Components
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: ScheduleAdapter
+    private lateinit var emptyState: LinearLayout
+    private lateinit var fabAddSchedule: FloatingActionButton
+    private lateinit var tvCurrentDay: TextView
+    private lateinit var tvCurrentDate: TextView
+
+    // Day chips for navigation
+    private lateinit var chipMonday: Chip
+    private lateinit var chipTuesday: Chip
+    private lateinit var chipWednesday: Chip
+    private lateinit var chipThursday: Chip
+    private lateinit var chipFriday: Chip
+    private lateinit var chipSaturday: Chip
+    private lateinit var chipSunday: Chip
+
+    // Database and Lists
+    private lateinit var database: StudentDatabase
+    private val schedulesList = mutableListOf<Schedule>()
+    private var coursesList = mutableListOf<Course>()
+    private var currentDay = "Monday"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        setContentView(R.layout.activity_schedule)
+
+        // Initialize views
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
+        recyclerView = findViewById(R.id.scheduleRecyclerView)
+        emptyState = findViewById(R.id.emptyState)
+        fabAddSchedule = findViewById(R.id.fabAddSchedule)
+        tvCurrentDay = findViewById(R.id.tvCurrentDay)
+        tvCurrentDate = findViewById(R.id.tvCurrentDate)
+
+        chipMonday = findViewById(R.id.chipMonday)
+        chipTuesday = findViewById(R.id.chipTuesday)
+        chipWednesday = findViewById(R.id.chipWednesday)
+        chipThursday = findViewById(R.id.chipThursday)
+        chipFriday = findViewById(R.id.chipFriday)
+        chipSaturday = findViewById(R.id.chipSaturday)
+        chipSunday = findViewById(R.id.chipSunday)
+
+        database = StudentDatabase.getDatabase(this)
+
+        toolbar.setNavigationOnClickListener {
+            finish()
+        }
+
+        // FUNCTION: Detects current system date and selects appropriate day chip
+        updateCurrentDate()
+
+        // FUNCTION: Setup adapter with click and long-press (for delete) handlers
+        adapter = ScheduleAdapter(
+            getFilteredSchedules(),
+            onScheduleClick = { schedule ->
+                showScheduleDialog(schedule)
+            },
+            onScheduleLongClick = { schedule ->
+                showDeleteConfirmation(schedule)
+                true
+            }
+        )
+        recyclerView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
+        fabAddSchedule.setOnClickListener {
+            showScheduleDialog(null)
+        }
+
+        // FUNCTION: Setup chip listeners for manual day switching
+        setupDayChips()
+
+        loadCourses()
+        loadSchedules()
+    }
+
+    /**
+     * FUNCTION: Configures listeners for the day-selection chips.
+     * CONDITIONAL LOGIC: Updates 'currentDay' and triggers a list refresh if a chip is checked.
+     */
+    private fun setupDayChips() {
+        val chips = listOf(chipMonday, chipTuesday, chipWednesday, chipThursday, chipFriday, chipSaturday, chipSunday)
+        val dayNames = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+        // LOOP: Dynamically set listeners for all day chips
+        chips.forEachIndexed { index, chip ->
+            chip.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) {
+                    currentDay = dayNames[index]
+                    updateSchedulesList()
+                }
+            }
+        }
+    }
+
+    /**
+     * FUNCTION: Logic to determine and display the current date and day.
+     * CONDITIONAL LOGIC: Maps Calendar.DAY_OF_WEEK to custom day strings using 'when'.
+     */
+    private fun updateCurrentDate() {
+        val calendar = Calendar.getInstance()
+        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+
+        currentDay = when (dayOfWeek) {
+            Calendar.SUNDAY -> "Sunday"
+            Calendar.MONDAY -> "Monday"
+            Calendar.TUESDAY -> "Tuesday"
+            Calendar.WEDNESDAY -> "Wednesday"
+            Calendar.THURSDAY -> "Thursday"
+            Calendar.FRIDAY -> "Friday"
+            Calendar.SATURDAY -> "Saturday"
+            else -> "Monday"
+        }
+
+        tvCurrentDay.text = currentDay
+        val dateFormat = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
+        tvCurrentDate.text = dateFormat.format(calendar.time)
+
+        // CONDITIONAL LOGIC: Automatically check the chip corresponding to today
+        when (currentDay) {
+            "Monday" -> chipMonday.isChecked = true
+            "Tuesday" -> chipTuesday.isChecked = true
+            "Wednesday" -> chipWednesday.isChecked = true
+            "Thursday" -> chipThursday.isChecked = true
+            "Friday" -> chipFriday.isChecked = true
+            "Saturday" -> chipSaturday.isChecked = true
+            "Sunday" -> chipSunday.isChecked = true
+        }
+    }
+
+    private fun loadCourses() {
+        lifecycleScope.launch {
+            val entities = database.courseDao().getAllCoursesSync()
+            coursesList.clear()
+            coursesList.addAll(entities.map { it.toCourse() })
+        }
+    }
+
+    private fun loadSchedules() {
+        lifecycleScope.launch {
+            val entities = database.scheduleDao().getAllSchedulesSync()
+            schedulesList.clear()
+            schedulesList.addAll(entities.map { it.toSchedule() })
+            updateSchedulesList()
+        }
+    }
+
+    /**
+     * FUNCTION: Displays a dialog for adding or editing schedule entries.
+     * CONDITIONAL LOGIC: Prevents schedule creation if no courses exist.
+     */
+    private fun showScheduleDialog(schedule: Schedule?) {
+        // CONDITIONAL LOGIC: Early exit if dependency (Courses) is missing
+        if (coursesList.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle("No Courses")
+                .setMessage("Please add courses first before creating a schedule.")
+                .setPositiveButton("OK", null)
+                .show()
+            return
+        }
+
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_schedule, null)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+        val courseDropdown = dialogView.findViewById<AutoCompleteTextView>(R.id.courseDropdown)
+        val dayChipGroup = dialogView.findViewById<ChipGroup>(R.id.dayChipGroup)
+        val etStartTime = dialogView.findViewById<TextInputEditText>(R.id.etStartTime)
+        val etEndTime = dialogView.findViewById<TextInputEditText>(R.id.etEndTime)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
+        val btnSave = dialogView.findViewById<Button>(R.id.btnSave)
+
+        // TRANSFORM: Map course objects to strings for the dropdown
+        val courseNames = coursesList.map { "${it.courseCode} - ${it.courseName}" }
+        val courseAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, courseNames)
+        courseDropdown.setAdapter(courseAdapter)
+
+        var selectedCourse: Course? = null
+        var startTime = ""
+        var endTime = ""
+
+        // CONDITIONAL LOGIC: Pre-populate data if editing an existing entry
+        if (schedule != null) {
+            dialogTitle.text = "Edit Schedule"
+            selectedCourse = coursesList.find { it.id == schedule.courseId }
+            courseDropdown.setText("${schedule.courseCode} - ${schedule.courseName}", false)
+
+            when (schedule.dayOfWeek) {
+                "Monday" -> dayChipGroup.check(R.id.chipMon)
+                "Tuesday" -> dayChipGroup.check(R.id.chipTue)
+                "Wednesday" -> dayChipGroup.check(R.id.chipWed)
+                "Thursday" -> dayChipGroup.check(R.id.chipThu)
+                "Friday" -> dayChipGroup.check(R.id.chipFri)
+                "Saturday" -> dayChipGroup.check(R.id.chipSat)
+                "Sunday" -> dayChipGroup.check(R.id.chipSun)
+            }
+
+            etStartTime.setText(schedule.startTime)
+            etEndTime.setText(schedule.endTime)
+            startTime = schedule.startTime
+            endTime = schedule.endTime
+            btnSave.text = "Update Schedule"
+        }
+
+        courseDropdown.setOnItemClickListener { _, _, position, _ ->
+            selectedCourse = coursesList[position]
+        }
+
+        // FUNCTION: Call TimePicker for start/end times
+        etStartTime.setOnClickListener {
+            showTimePicker { hour, minute ->
+                startTime = String.format("%02d:%02d", hour, minute)
+                etStartTime.setText(startTime)
+            }
+        }
+
+        etEndTime.setOnClickListener {
+            showTimePicker { hour, minute ->
+                endTime = String.format("%02d:%02d", hour, minute)
+                etEndTime.setText(endTime)
+            }
+        }
+
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnSave.setOnClickListener {
+            // CONDITIONAL LOGIC: Validation
+            if (selectedCourse == null) {
+                courseDropdown.error = "Please select a course"
+                return@setOnClickListener
+            }
+            if (startTime.isEmpty() || endTime.isEmpty()) {
+                return@setOnClickListener
+            }
+
+            // CONDITIONAL LOGIC: Resolve selected day from ChipGroup
+            val selectedDay = when (dayChipGroup.checkedChipId) {
+                R.id.chipMon -> "Monday"
+                R.id.chipTue -> "Tuesday"
+                R.id.chipWed -> "Wednesday"
+                R.id.chipThu -> "Thursday"
+                R.id.chipFri -> "Friday"
+                R.id.chipSat -> "Saturday"
+                R.id.chipSun -> "Sunday"
+                else -> "Monday"
+            }
+
+            val course = selectedCourse!!
+
+            // CONDITIONAL LOGIC: Insert/Update branch
+            if (schedule == null) {
+                val newSchedule = Schedule(0, course.id, course.courseCode, course.courseName, course.instructor, course.room, selectedDay, startTime, endTime, course.color)
+                lifecycleScope.launch {
+                    database.scheduleDao().insert(newSchedule.toEntity())
+                    loadSchedules()
+                }
+            } else {
+                val updatedSchedule = schedule.copy(courseId = course.id, courseCode = course.courseCode, courseName = course.courseName, instructor = course.instructor, room = course.room, dayOfWeek = selectedDay, startTime = startTime, endTime = endTime, color = course.color)
+                lifecycleScope.launch {
+                    database.scheduleDao().update(updatedSchedule.toEntity())
+                    loadSchedules()
+                }
+            }
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    /**
+     * FUNCTION: Standard TimePickerDialog implementation.
+     */
+    private fun showTimePicker(onTimeSet: (Int, Int) -> Unit) {
+        val calendar = Calendar.getInstance()
+        TimePickerDialog(this, { _, hour, minute -> onTimeSet(hour, minute) }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
+    }
+
+    private fun showDeleteConfirmation(schedule: Schedule) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete Schedule")
+            .setMessage("Remove ${schedule.courseCode} from ${schedule.dayOfWeek}?")
+            .setPositiveButton("Delete") { _, _ ->
+                lifecycleScope.launch {
+                    database.scheduleDao().delete(schedule.toEntity())
+                    loadSchedules()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /**
+     * FUNCTION: Filters schedule list by the current day.
+     * LOGIC/LOOP: Uses '.filter' and '.sortedBy' for presentation order.
+     */
+    private fun getFilteredSchedules(): List<Schedule> {
+        return schedulesList
+            .filter { it.dayOfWeek == currentDay }
+            .sortedBy { it.startTime }
+    }
+
+    private fun updateSchedulesList() {
+        adapter.updateSchedules(getFilteredSchedules())
+        updateUI()
+    }
+
+    private fun updateUI() {
+        val filteredList = getFilteredSchedules()
+        if (filteredList.isEmpty()) {
+            emptyState.visibility = View.VISIBLE
+            recyclerView.visibility = View.GONE
+        } else {
+            emptyState.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
+        }
+    }
+}

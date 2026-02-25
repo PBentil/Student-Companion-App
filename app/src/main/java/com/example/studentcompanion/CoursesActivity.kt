@@ -21,8 +21,12 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 
+/**
+ * CoursesActivity manages the list of academic courses.
+ */
 class CoursesActivity : AppCompatActivity() {
 
+    // UI and Database references
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: CoursesAdapter
     private lateinit var emptyState: LinearLayout
@@ -34,9 +38,7 @@ class CoursesActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
         setContentView(R.layout.activity_courses)
 
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
@@ -50,21 +52,24 @@ class CoursesActivity : AppCompatActivity() {
             finish()
         }
 
+        // FUNCTION: Initialize adapter with a click listener for editing
         adapter = CoursesAdapter(coursesList) { course ->
             showCourseDialog(course)
         }
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // Setup FAB
         fabAddCourse.setOnClickListener {
             showCourseDialog(null)
         }
 
-        // Load courses from database
         loadCourses()
     }
 
+    /**
+     * FUNCTION: Fetches courses from the database.
+     * LOOP/TRANSFORM: Uses '.map' to convert entity objects to UI model objects.
+     */
     private fun loadCourses() {
         lifecycleScope.launch {
             val entities = database.courseDao().getAllCoursesSync()
@@ -75,8 +80,14 @@ class CoursesActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * FUNCTION: Shows a dialog to add or edit a course.
+     * NULLABILITY: 'course' is nullable; if null, the dialog is for a new course.
+     */
     private fun showCourseDialog(course: Course?) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_course, null)
+        
+        // NULLABILITY/LOGIC: Use elvis operator to provide a default color
         selectedColor = course?.color ?: "#6366F1"
 
         val dialog = AlertDialog.Builder(this)
@@ -99,28 +110,30 @@ class CoursesActivity : AppCompatActivity() {
         val colorRed = dialogView.findViewById<View>(R.id.colorRed)
         val colorPurple = dialogView.findViewById<View>(R.id.colorPurple)
 
+        /**
+         * FUNCTION: selectColor handles the logic for choosing a theme color for a course.
+         * LOGIC: Updates 'selectedColor' and modifies view scales for visual feedback.
+         */
         fun selectColor(color: String, view: View) {
             selectedColor = color
-            colorBlue.scaleX = 1f
-            colorBlue.scaleY = 1f
-            colorGreen.scaleX = 1f
-            colorGreen.scaleY = 1f
-            colorYellow.scaleX = 1f
-            colorYellow.scaleY = 1f
-            colorRed.scaleX = 1f
-            colorRed.scaleY = 1f
-            colorPurple.scaleX = 1f
-            colorPurple.scaleY = 1f
+            // Reset scales for all color views
+            listOf(colorBlue, colorGreen, colorYellow, colorRed, colorPurple).forEach { 
+                it.scaleX = 1f
+                it.scaleY = 1f
+            }
+            // Highlight selected view
             view.scaleX = 1.2f
             view.scaleY = 1.2f
         }
 
+        // CONDITIONAL LOGIC: Color selection handlers
         colorBlue.setOnClickListener { selectColor("#6366F1", it) }
         colorGreen.setOnClickListener { selectColor("#10B981", it) }
         colorYellow.setOnClickListener { selectColor("#F59E0B", it) }
         colorRed.setOnClickListener { selectColor("#EF4444", it) }
         colorPurple.setOnClickListener { selectColor("#A855F7", it) }
 
+        // CONDITIONAL LOGIC: Populate fields if editing an existing course
         if (course != null) {
             dialogTitle.text = "Edit Course"
             etCourseCode.setText(course.courseCode)
@@ -144,12 +157,15 @@ class CoursesActivity : AppCompatActivity() {
             val schedule = etSchedule.text.toString().trim()
             val creditsStr = etCredits.text.toString().trim()
 
+            // CONDITIONAL LOGIC: Basic validation
             if (courseCode.isEmpty() || courseName.isEmpty()) {
                 return@setOnClickListener
             }
 
+            // NULLABILITY: safe conversion using toIntOrNull()
             val credits = creditsStr.toIntOrNull() ?: 0
 
+            // CONDITIONAL LOGIC: Insert or Update based on 'course' nullability
             if (course == null) {
                 val newCourse = Course(
                     id = 0,
@@ -189,6 +205,9 @@ class CoursesActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    /**
+     * FUNCTION: Updates visibility logic for empty state.
+     */
     private fun updateUI() {
         if (coursesList.isEmpty()) {
             emptyState.visibility = View.VISIBLE
