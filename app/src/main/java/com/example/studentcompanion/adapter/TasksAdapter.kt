@@ -12,13 +12,24 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.studentcompanion.R
 import com.example.studentcompanion.model.Task
 
+/**
+ * CLASS: TasksAdapter
+ * INHERITANCE: Inherits from RecyclerView.Adapter. 
+ * This class manages how Task data is displayed in a RecyclerView list.
+ */
 class TasksAdapter(
     private var tasks: List<Task>,
+    // LAMBDA FUNCTIONS: Higher-order functions passed as parameters to handle user interactions
     private val onTaskClick: (Task) -> Unit,
     private val onCheckboxChange: (Task, Boolean) -> Unit,
     private val onDeleteClick: (Task) -> Unit
 ) : RecyclerView.Adapter<TasksAdapter.TaskViewHolder>() {
 
+    /**
+     * NESTED CLASS: TaskViewHolder
+     * INHERITANCE: Inherits from RecyclerView.ViewHolder.
+     * Holds references to the views for a single item in the list.
+     */
     class TaskViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val checkbox: AppCompatCheckBox = itemView.findViewById(R.id.checkboxTask)
         val title: TextView = itemView.findViewById(R.id.tvTaskTitle)
@@ -38,9 +49,9 @@ class TasksAdapter(
         val task = tasks[position]
 
         holder.checkbox.isChecked = task.isCompleted
-
         holder.title.text = task.title
 
+        // CONDITIONAL LOGIC for UI appearance based on task state
         if (task.isCompleted) {
             holder.title.paintFlags = holder.title.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             holder.title.alpha = 0.5f
@@ -65,14 +76,17 @@ class TasksAdapter(
             holder.categoryBadge.visibility = View.GONE
         }
 
+        // LAMBDA USAGE: Invoking the callback when the checkbox state changes
         holder.checkbox.setOnCheckedChangeListener { _, isChecked ->
             onCheckboxChange(task, isChecked)
         }
 
+        // LAMBDA USAGE: Invoking the callback when an item is clicked
         holder.itemView.setOnClickListener {
             onTaskClick(task)
         }
 
+        // LAMBDA USAGE: Invoking the callback when delete is clicked
         holder.deleteIcon.setOnClickListener {
             onDeleteClick(task)
         }

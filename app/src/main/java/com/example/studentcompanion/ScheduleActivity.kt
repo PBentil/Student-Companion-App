@@ -30,8 +30,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * ScheduleActivity manages the weekly class schedule.
- * Features day-based filtering and automated date detection.
+ * CLASS: ScheduleActivity
+ * INHERITANCE: Inherits from AppCompatActivity.
+ * Manages the weekly class schedule.
  */
 class ScheduleActivity : AppCompatActivity() {
 
@@ -81,14 +82,14 @@ class ScheduleActivity : AppCompatActivity() {
 
         database = StudentDatabase.getDatabase(this)
 
+        // LAMBDA: Toolbar navigation listener
         toolbar.setNavigationOnClickListener {
             finish()
         }
 
-        // FUNCTION: Detects current system date and selects appropriate day chip
         updateCurrentDate()
 
-        // FUNCTION: Setup adapter with click and long-press (for delete) handlers
+        // LAMBDA: Initializing adapter with click and long-press callback lambdas
         adapter = ScheduleAdapter(
             getFilteredSchedules(),
             onScheduleClick = { schedule ->
@@ -96,17 +97,17 @@ class ScheduleActivity : AppCompatActivity() {
             },
             onScheduleLongClick = { schedule ->
                 showDeleteConfirmation(schedule)
-                true
+                true // Returns Boolean as required by long-press listener
             }
         )
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        // LAMBDA: FAB click listener
         fabAddSchedule.setOnClickListener {
             showScheduleDialog(null)
         }
 
-        // FUNCTION: Setup chip listeners for manual day switching
         setupDayChips()
 
         loadCourses()
@@ -114,14 +115,13 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     /**
-     * FUNCTION: Configures listeners for the day-selection chips.
-     * CONDITIONAL LOGIC: Updates 'currentDay' and triggers a list refresh if a chip is checked.
+     * FUNCTION: setupDayChips
      */
     private fun setupDayChips() {
         val chips = listOf(chipMonday, chipTuesday, chipWednesday, chipThursday, chipFriday, chipSaturday, chipSunday)
         val dayNames = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
-        // LOOP: Dynamically set listeners for all day chips
+        // LAMBDA: .forEachIndexed { ... } using a lambda to iterate through views and set listeners
         chips.forEachIndexed { index, chip ->
             chip.setOnCheckedChangeListener { _, isChecked ->
                 if (isChecked) {
@@ -132,10 +132,6 @@ class ScheduleActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * FUNCTION: Logic to determine and display the current date and day.
-     * CONDITIONAL LOGIC: Maps Calendar.DAY_OF_WEEK to custom day strings using 'when'.
-     */
     private fun updateCurrentDate() {
         val calendar = Calendar.getInstance()
         val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
@@ -155,7 +151,6 @@ class ScheduleActivity : AppCompatActivity() {
         val dateFormat = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
         tvCurrentDate.text = dateFormat.format(calendar.time)
 
-        // CONDITIONAL LOGIC: Automatically check the chip corresponding to today
         when (currentDay) {
             "Monday" -> chipMonday.isChecked = true
             "Tuesday" -> chipTuesday.isChecked = true
@@ -168,28 +163,30 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun loadCourses() {
+        // LAMBDA: Coroutine launch
         lifecycleScope.launch {
             val entities = database.courseDao().getAllCoursesSync()
             coursesList.clear()
+            // LAMBDA: .map { ... } transformation lambda
             coursesList.addAll(entities.map { it.toCourse() })
         }
     }
 
     private fun loadSchedules() {
+        // LAMBDA: Coroutine launch
         lifecycleScope.launch {
             val entities = database.scheduleDao().getAllSchedulesSync()
             schedulesList.clear()
+            // LAMBDA: .map { ... } transformation lambda
             schedulesList.addAll(entities.map { it.toSchedule() })
             updateSchedulesList()
         }
     }
 
     /**
-     * FUNCTION: Displays a dialog for adding or editing schedule entries.
-     * CONDITIONAL LOGIC: Prevents schedule creation if no courses exist.
+     * FUNCTION: showScheduleDialog
      */
     private fun showScheduleDialog(schedule: Schedule?) {
-        // CONDITIONAL LOGIC: Early exit if dependency (Courses) is missing
         if (coursesList.isEmpty()) {
             AlertDialog.Builder(this)
                 .setTitle("No Courses")
@@ -213,7 +210,7 @@ class ScheduleActivity : AppCompatActivity() {
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
         val btnSave = dialogView.findViewById<Button>(R.id.btnSave)
 
-        // TRANSFORM: Map course objects to strings for the dropdown
+        // LAMBDA: .map { ... } for dropdown items
         val courseNames = coursesList.map { "${it.courseCode} - ${it.courseName}" }
         val courseAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, courseNames)
         courseDropdown.setAdapter(courseAdapter)
@@ -222,9 +219,9 @@ class ScheduleActivity : AppCompatActivity() {
         var startTime = ""
         var endTime = ""
 
-        // CONDITIONAL LOGIC: Pre-populate data if editing an existing entry
         if (schedule != null) {
             dialogTitle.text = "Edit Schedule"
+            // LAMBDA: .find { ... } uses a predicate lambda to locate an item
             selectedCourse = coursesList.find { it.id == schedule.courseId }
             courseDropdown.setText("${schedule.courseCode} - ${schedule.courseName}", false)
 
@@ -245,11 +242,12 @@ class ScheduleActivity : AppCompatActivity() {
             btnSave.text = "Update Schedule"
         }
 
+        // LAMBDA: Dropdown item click listener
         courseDropdown.setOnItemClickListener { _, _, position, _ ->
             selectedCourse = coursesList[position]
         }
 
-        // FUNCTION: Call TimePicker for start/end times
+        // LAMBDA: Time pickers with custom result lambdas
         etStartTime.setOnClickListener {
             showTimePicker { hour, minute ->
                 startTime = String.format("%02d:%02d", hour, minute)
@@ -269,7 +267,6 @@ class ScheduleActivity : AppCompatActivity() {
         }
 
         btnSave.setOnClickListener {
-            // CONDITIONAL LOGIC: Validation
             if (selectedCourse == null) {
                 courseDropdown.error = "Please select a course"
                 return@setOnClickListener
@@ -278,7 +275,6 @@ class ScheduleActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // CONDITIONAL LOGIC: Resolve selected day from ChipGroup
             val selectedDay = when (dayChipGroup.checkedChipId) {
                 R.id.chipMon -> "Monday"
                 R.id.chipTue -> "Tuesday"
@@ -292,7 +288,6 @@ class ScheduleActivity : AppCompatActivity() {
 
             val course = selectedCourse!!
 
-            // CONDITIONAL LOGIC: Insert/Update branch
             if (schedule == null) {
                 val newSchedule = Schedule(0, course.id, course.courseCode, course.courseName, course.instructor, course.room, selectedDay, startTime, endTime, course.color)
                 lifecycleScope.launch {
@@ -312,10 +307,12 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     /**
-     * FUNCTION: Standard TimePickerDialog implementation.
+     * FUNCTION: showTimePicker
+     * USES LAMBDA: Accepts a lambda 'onTimeSet' to handle the selected time result
      */
     private fun showTimePicker(onTimeSet: (Int, Int) -> Unit) {
         val calendar = Calendar.getInstance()
+        // LAMBDA: TimePickerDialog listener using a lambda
         TimePickerDialog(this, { _, hour, minute -> onTimeSet(hour, minute) }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
     }
 
@@ -323,6 +320,7 @@ class ScheduleActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("Delete Schedule")
             .setMessage("Remove ${schedule.courseCode} from ${schedule.dayOfWeek}?")
+            // LAMBDA: Dialog positive button listener
             .setPositiveButton("Delete") { _, _ ->
                 lifecycleScope.launch {
                     database.scheduleDao().delete(schedule.toEntity())
@@ -334,8 +332,8 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     /**
-     * FUNCTION: Filters schedule list by the current day.
-     * LOGIC/LOOP: Uses '.filter' and '.sortedBy' for presentation order.
+     * FUNCTION: getFilteredSchedules
+     * USES LAMBDA: .filter { ... } and .sortedBy { ... }
      */
     private fun getFilteredSchedules(): List<Schedule> {
         return schedulesList

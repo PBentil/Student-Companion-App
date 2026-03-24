@@ -16,8 +16,9 @@ import java.util.Calendar
 import java.util.Locale
 
 /**
- * MainActivity serves as the dashboard for the Student Companion app.
- * It displays summary statistics and providing navigation to different sections.
+ * CLASS: MainActivity
+ * INHERITANCE: Inherits from AppCompatActivity.
+ * This class serves as the main dashboard for the application.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -47,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         val cardTasks = findViewById<CardView>(R.id.cardTasks)
         val cardSchedule = findViewById<CardView>(R.id.cardSchedule)
 
-        // CONDITIONAL LOGIC: Navigation handlers for dashboard cards
+        // LAMBDA FUNCTIONS: setOnClickListener uses lambda expressions to define behavior for button clicks
         cardCourses.setOnClickListener {
             startActivity(Intent(this, CoursesActivity::class.java))
         }
@@ -76,15 +77,16 @@ class MainActivity : AppCompatActivity() {
      * Uses Coroutines (lifecycleScope.launch) for background database operations.
      */
     private fun updateDashboard() {
+        // LAMBDA: The block passed to launch { ... } is a lambda expression executed in a coroutine
         lifecycleScope.launch {
             // Fetch and display total courses
             val courses = database.courseDao().getAllCoursesSync()
             tvCoursesCount.text = courses.size.toString()
 
-            // Fetch all assignments and convert them to domain models
+            // LAMBDA: .map { ... } uses a lambda to transform entity objects to models
             val assignments = database.assignmentDao().getAllAssignmentsSync().map { it.toAssignment() }
             
-            // LOOP/FILTER: Count assignments with PENDING status
+            // LAMBDA: .count { ... } uses a predicate lambda to filter and count items
             val pendingCount = assignments.count { it.status == Status.PENDING }
             tvPendingCount.text = pendingCount.toString()
 
@@ -93,7 +95,7 @@ class MainActivity : AppCompatActivity() {
             val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             val todayStr = dateFormat.format(today.time)
             
-            // LOOP/FILTER: Count assignments due on the current date
+            // LAMBDA: Another usage of .count with a lambda for date comparison
             val dueTodayCount = assignments.count { it.dueDate == todayStr }
             tvDueTodayCount.text = dueTodayCount.toString()
         }

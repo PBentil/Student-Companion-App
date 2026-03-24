@@ -31,8 +31,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * AssignmentsActivity handles the tracking of academic assignments.
- * Features filtering by status and priority management.
+ * CLASS: AssignmentsActivity
+ * INHERITANCE: Inherits from AppCompatActivity.
+ * Handles the tracking of academic assignments.
  */
 class AssignmentsActivity : AppCompatActivity() {
 
@@ -69,11 +70,12 @@ class AssignmentsActivity : AppCompatActivity() {
 
         database = StudentDatabase.getDatabase(this)
 
+        // LAMBDA: Toolbar navigation listener
         toolbar.setNavigationOnClickListener {
             finish()
         }
 
-        // FUNCTION: Initialize adapter with callback functions
+        // LAMBDA: Initializing adapter with callback lambdas for click and status change
         adapter = AssignmentsAdapter(
             getFilteredAssignments(),
             onAssignmentClick = { assignment ->
@@ -86,11 +88,12 @@ class AssignmentsActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        // LAMBDA: FAB click listener
         fabAddAssignment.setOnClickListener {
             showAssignmentDialog(null)
         }
 
-        // CONDITIONAL LOGIC: Filter chip selection handlers
+        // LAMBDA: Filtering logic triggered by chip state changes
         chipAll.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 currentFilter = "All"
@@ -124,12 +127,13 @@ class AssignmentsActivity : AppCompatActivity() {
 
     /**
      * FUNCTION: Asynchronously loads assignments from database.
-     * TRANSFORM: Uses '.map' to convert entities.
      */
     private fun loadAssignments() {
+        // LAMBDA: Coroutine launch
         lifecycleScope.launch {
             val entities = database.assignmentDao().getAllAssignmentsSync()
             assignmentsList.clear()
+            // LAMBDA: .map { ... } for data transformation
             assignmentsList.addAll(entities.map { it.toAssignment() })
             updateAssignmentsList()
             updateUI()
@@ -156,7 +160,7 @@ class AssignmentsActivity : AppCompatActivity() {
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
         val btnSave = dialogView.findViewById<Button>(R.id.btnSave)
 
-        // FUNCTION: Fetch courses to populate dropdown
+        // LAMBDA: Fetching and mapping courses to strings for the dropdown
         lifecycleScope.launch {
             val courseEntities = database.courseDao().getAllCoursesSync()
             val courseCodes = courseEntities.map { it.courseCode }
@@ -164,6 +168,7 @@ class AssignmentsActivity : AppCompatActivity() {
             etCourse.setAdapter(courseAdapter)
         }
 
+        // LAMBDA: Date picker trigger
         etDueDate.setOnClickListener {
             showDatePicker { date ->
                 etDueDate.setText(date)
@@ -192,10 +197,12 @@ class AssignmentsActivity : AppCompatActivity() {
             etDueDate.setText(dateFormat.format(selectedDate.time))
         }
 
+        // LAMBDA: Dialog dismissal
         btnCancel.setOnClickListener {
             dialog.dismiss()
         }
 
+        // LAMBDA: Save/Update logic inside click listener
         btnSave.setOnClickListener {
             val title = etTitle.text.toString().trim()
             val courseCode = etCourse.text.toString().trim()
@@ -253,10 +260,12 @@ class AssignmentsActivity : AppCompatActivity() {
     }
 
     /**
-     * FUNCTION: Wraps DatePickerDialog into a clean callback interface.
+     * FUNCTION: showDatePicker
+     * USES LAMBDA: Accepts a lambda 'onDateSelected' to pass the result back to the caller
      */
     private fun showDatePicker(onDateSelected: (String) -> Unit) {
         val calendar = Calendar.getInstance()
+        // LAMBDA: DatePickerDialog listener
         val datePickerDialog = DatePickerDialog(
             this,
             { _, year, month, dayOfMonth ->
@@ -272,7 +281,7 @@ class AssignmentsActivity : AppCompatActivity() {
     }
 
     /**
-     * FUNCTION: Updates completion status and status enum based on checkbox state.
+     * FUNCTION: handleCheckboxChange
      */
     private fun handleCheckboxChange(assignment: Assignment, isChecked: Boolean) {
         val updatedAssignment = assignment.copy(
@@ -287,8 +296,8 @@ class AssignmentsActivity : AppCompatActivity() {
     }
 
     /**
-     * FUNCTION: Applies filter logic to the assignments list.
-     * CONDITIONAL LOGIC: Filtering based on enum values and status strings.
+     * FUNCTION: getFilteredAssignments
+     * USES LAMBDA: .filter { ... }
      */
     private fun getFilteredAssignments(): List<Assignment> {
         return when (currentFilter) {
@@ -303,9 +312,6 @@ class AssignmentsActivity : AppCompatActivity() {
         adapter.updateAssignments(getFilteredAssignments())
     }
 
-    /**
-     * FUNCTION: Updates visibility of UI elements based on list state.
-     */
     private fun updateUI() {
         val filteredList = getFilteredAssignments()
         if (filteredList.isEmpty()) {

@@ -24,8 +24,9 @@ import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 
 /**
- * TasksActivity manages the To-Do list functionality.
- * Allows users to create, filter, complete, and delete tasks.
+ * CLASS: TasksActivity
+ * INHERITANCE: Inherits from AppCompatActivity.
+ * Manages the To-Do list functionality.
  */
 class TasksActivity : AppCompatActivity() {
 
@@ -71,7 +72,7 @@ class TasksActivity : AppCompatActivity() {
             finish()
         }
 
-        // FUNCTION/LAMBDA: Setup adapter with callback functions for clicks and actions
+        // LAMBDA: Initializing the adapter with three different lambda expressions for callbacks
         adapter = TasksAdapter(
             getFilteredTasks(),
             onTaskClick = { task ->
@@ -87,11 +88,12 @@ class TasksActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        // LAMBDA: click listener using a lambda
         fabAddTask.setOnClickListener {
             showTaskDialog(null)
         }
 
-        // CONDITIONAL LOGIC: Handle filtering based on chip selection
+        // LAMBDA: Checkbox change listeners using lambdas
         chipAll.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 currentFilter = "All"
@@ -120,10 +122,11 @@ class TasksActivity : AppCompatActivity() {
      * FUNCTION: Loads tasks from Room database asynchronously.
      */
     private fun loadTasks() {
+        // LAMBDA: Coroutine launch block
         lifecycleScope.launch {
             val entities = database.taskDao().getAllTasksSync()
             tasksList.clear()
-            // LOOP: Transform entities to domain models using .map
+            // LAMBDA: Using .map with a transformation lambda
             tasksList.addAll(entities.map { it.toTask() })
             updateTasksList()
             updateProgress()
@@ -166,10 +169,12 @@ class TasksActivity : AppCompatActivity() {
             btnSave.text = "Update Task"
         }
 
+        // LAMBDA: Click listener for cancel button
         btnCancel.setOnClickListener {
             dialog.dismiss()
         }
 
+        // LAMBDA: Click listener for save button
         btnSave.setOnClickListener {
             val title = etTitle.text.toString().trim()
             val description = etDescription.text.toString().trim()
@@ -242,6 +247,7 @@ class TasksActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("Delete Task")
             .setMessage("Are you sure you want to delete \"${task.title}\"?")
+            // LAMBDA: Dialog button listener using a lambda
             .setPositiveButton("Delete") { _, _ ->
                 lifecycleScope.launch {
                     database.taskDao().delete(task.toEntity())
@@ -257,6 +263,7 @@ class TasksActivity : AppCompatActivity() {
      * CONDITIONAL LOGIC: Uses 'when' and 'filter' (loop-based filtering).
      */
     private fun getFilteredTasks(): List<Task> {
+        // LAMBDA: .filter { ... } uses a predicate lambda to determine which items to keep
         return when (currentFilter) {
             "Active" -> tasksList.filter { !it.isCompleted }
             "Completed" -> tasksList.filter { it.isCompleted }
@@ -270,9 +277,9 @@ class TasksActivity : AppCompatActivity() {
 
     /**
      * FUNCTION: Calculates and updates the overall progress bar.
-     * LOOP/LOGIC: Uses 'count' to iterate through list and logic to prevent division by zero.
      */
     private fun updateProgress() {
+        // LAMBDA: .count { ... } uses a lambda for counting based on a condition
         val completed = tasksList.count { it.isCompleted }
         val total = tasksList.size
 
@@ -286,7 +293,6 @@ class TasksActivity : AppCompatActivity() {
 
     /**
      * FUNCTION: Controls visibility of empty state vs. recycler view.
-     * CONDITIONAL LOGIC: Checks if the filtered list is empty.
      */
     private fun updateUI() {
         val filteredList = getFilteredTasks()
