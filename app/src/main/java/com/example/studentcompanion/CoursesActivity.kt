@@ -22,7 +22,9 @@ import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 
 /**
- * CoursesActivity manages the list of academic courses.
+ * CLASS: CoursesActivity
+ * INHERITANCE: Inherits from AppCompatActivity.
+ * Manages the list of academic courses.
  */
 class CoursesActivity : AppCompatActivity() {
 
@@ -48,17 +50,19 @@ class CoursesActivity : AppCompatActivity() {
 
         database = StudentDatabase.getDatabase(this)
 
+        // LAMBDA: Navigation click listener
         toolbar.setNavigationOnClickListener {
             finish()
         }
 
-        // FUNCTION: Initialize adapter with a click listener for editing
+        // LAMBDA: Initializing adapter with a click listener lambda for editing
         adapter = CoursesAdapter(coursesList) { course ->
             showCourseDialog(course)
         }
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        // LAMBDA: Click listener for FAB
         fabAddCourse.setOnClickListener {
             showCourseDialog(null)
         }
@@ -68,12 +72,13 @@ class CoursesActivity : AppCompatActivity() {
 
     /**
      * FUNCTION: Fetches courses from the database.
-     * LOOP/TRANSFORM: Uses '.map' to convert entity objects to UI model objects.
      */
     private fun loadCourses() {
+        // LAMBDA: Coroutine launch
         lifecycleScope.launch {
             val entities = database.courseDao().getAllCoursesSync()
             coursesList.clear()
+            // LAMBDA: .map { ... } transformation
             coursesList.addAll(entities.map { it.toCourse() })
             adapter.updateCourses(coursesList)
             updateUI()
@@ -112,11 +117,10 @@ class CoursesActivity : AppCompatActivity() {
 
         /**
          * FUNCTION: selectColor handles the logic for choosing a theme color for a course.
-         * LOGIC: Updates 'selectedColor' and modifies view scales for visual feedback.
          */
         fun selectColor(color: String, view: View) {
             selectedColor = color
-            // Reset scales for all color views
+            // LAMBDA: .forEach { ... } to iterate and reset views
             listOf(colorBlue, colorGreen, colorYellow, colorRed, colorPurple).forEach { 
                 it.scaleX = 1f
                 it.scaleY = 1f
@@ -126,7 +130,7 @@ class CoursesActivity : AppCompatActivity() {
             view.scaleY = 1.2f
         }
 
-        // CONDITIONAL LOGIC: Color selection handlers
+        // LAMBDA: Click listeners for color picking
         colorBlue.setOnClickListener { selectColor("#6366F1", it) }
         colorGreen.setOnClickListener { selectColor("#10B981", it) }
         colorYellow.setOnClickListener { selectColor("#F59E0B", it) }
@@ -145,6 +149,7 @@ class CoursesActivity : AppCompatActivity() {
             btnSave.text = "Update Course"
         }
 
+        // LAMBDA: Button click listeners
         btnCancel.setOnClickListener {
             dialog.dismiss()
         }
@@ -205,9 +210,6 @@ class CoursesActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    /**
-     * FUNCTION: Updates visibility logic for empty state.
-     */
     private fun updateUI() {
         if (coursesList.isEmpty()) {
             emptyState.visibility = View.VISIBLE
