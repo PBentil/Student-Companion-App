@@ -12,6 +12,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.StudentCompanion">
         <activity
+            android:name=".CoursesActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AssignmentsActivity"
+            android:exported="false" />
+        <activity android:name=".TasksActivity"
+            android:exported="false" />
+        <activity android:name=".ScheduleActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

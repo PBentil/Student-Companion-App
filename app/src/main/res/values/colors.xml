@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="background_light">#F5F7FA</color>
+    <color name="white">#FFFFFF</color>
+
+    <color name="text_primary">#1E293B</color>
+    <color name="text_secondary">#64748B</color>
+    <color name="text_tertiary">#94A3B8</color>
+    <color name="text_light">#CBD5E1</color>
+
+    <color name="primary">#6366F1</color>
+    <color name="primary_light">#818CF8</color>
+    <color name="primary_lightest">#E0E7FF</color>
+
+    <color name="courses_bg">#EEF2FF</color>
+    <color name="assignments_bg">#FEF3C7</color>
+    <color name="tasks_bg">#DCFCE7</color>
+    <color name="schedule_bg">#FCE7F3</color>
 </resources>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Course Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Course Color Indicator -->
+            <View
+                android:id="@+id/courseColorIndicator"
+                android:layout_width="6dp"
+                android:layout_height="48dp"
+                android:background="@drawable/rounded_indicator"
+                android:backgroundTint="#6366F1"
+                android:layout_marginEnd="16dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- Course Code -->
+                <TextView
+                    android:id="@+id/tvCourseCode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CS 101"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="#6366F1"
+                    android:layout_marginBottom="4dp" />
+
+                <!-- Course Name -->
+                <TextView
+                    android:id="@+id/tvCourseName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Introduction to Computer Science"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#1E293B" />
+
+            </LinearLayout>
+
+            <!-- Credits Badge -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/badge_background"
+                android:backgroundTint="#EEF2FF"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
+
+                <TextView
+                    android:id="@+id/tvCredits"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="3"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="#6366F1" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" cr"
+                    android:textSize="10sp"
+                    android:textColor="#6366F1" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Course Details -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="22dp">
+
+            <!-- Instructor -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="👨‍🏫"
+                    android:textSize="16sp"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/tvInstructor"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dr. Sarah Johnson"
+                    android:textSize="13sp"
+                    android:textColor="#64748B" />
+
+            </LinearLayout>
+
+            <!-- Room/Location -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📍"
+                    android:textSize="16sp"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/tvRoom"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Room 204, Science Building"
+                    android:textSize="13sp"
+                    android:textColor="#64748B" />
+
+            </LinearLayout>
+
+            <!-- Schedule -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🕐"
+                    android:textSize="16sp"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/tvSchedule"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mon, Wed, Fri • 10:00 AM - 11:30 AM"
+                    android:textSize="13sp"
+                    android:textColor="#64748B" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>
